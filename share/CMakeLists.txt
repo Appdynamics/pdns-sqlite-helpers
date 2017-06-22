@@ -7,5 +7,5 @@ foreach(script ${scripts})
 endforeach()
 
 foreach(script ${scripts})
-    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${script} DESTINATION ${SHAREDIR})
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${script} DESTINATION ${SHAREDIR})
 endforeach()

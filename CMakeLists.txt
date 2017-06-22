@@ -38,4 +38,13 @@ if(NOT DEFINED LIBEXEC)
     endif()
 endif()
 
+if(NOT DEFINED SHAREDIR)
+    if(${CMAKE_INSTALL_PREFIX} EQUAL "/")
+        set(SHAREDIR /usr/share)
+    else()
+        set(SHAREDIR ${CMAKE_INSTALL_PREFIX}/share)
+    endif()
+endif()
+
 add_subdirectory(libexec)
+add_subdirectory(share)
