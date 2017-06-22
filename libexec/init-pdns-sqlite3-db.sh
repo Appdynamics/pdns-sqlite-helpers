@@ -14,23 +14,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 'declare' variables we're sourcing from @SHAREDIR@/pdns-postgresql-helper-constants.sh
+# to keep the IDE happy
+declare PDNS_CFGDIR \
+    PDNS_CFGNAME \
+    PDNS_RUNTIME_USER \
+    PDNS_RUNTIME_GROUP \
+    PDNS_SQLITE_DB_DIR \
+    PDNS_SQLITE_FILENAME
+
 DATE_TIMESTAMP=`date "+%Y%m%d-%H%M%S"`
-PDNS_CONF="@ETCDIR@/pdns/pdns.conf"
-PDNS_SQLITE_DB="@VARDIR@/pdns/db/pdns.sqlite3"
-PDNS_SQLITE_DB_DIR="$(dirname "$PDNS_SQLITE_DB")"
+
 # Use the brew sqlite3 rather than the "OS X" default
 PATH="/usr/local/opt/sqlite/bin:$PATH"
 
-# Everything about the DNS server config includng its database should be privileged or owned by _pdns
-
-# rename $1 to $1.bak-$DATE_TIMESTAMP and keep it in the same directory
+# renames $1 to $1.bak-$DATE_TIMESTAMP, as root and keeps it in the same directory
+# $2: optional ownership spec i.e. 'user' or 'user:group'
 backup_file(){
     if [ -f "$1" ]; then
-        if ! sudo mv "$1" "$1.bak-$DATE_TIMESTAMP"; then
+        DST="$1.bak-$DATE_TIMESTAMP"
+        if ! sudo mv "$1" "$DST"; then
             >&2 echo "Failed to rename '$1' to"
-            >&2 echo "$1.bak-$DATE_TIMESTAMP"
+            >&2 echo "$DST"
             >&2 echo "Exiting."
             exit 2
+        fi
+        if [ -n "$2" ]; then
+            sudo chown "$2" "$DST"
         fi
     fi
 }
@@ -42,11 +52,14 @@ if ! [ -d "$PDNS_SQLITE_DB_DIR" ]; then
         exit 1
     fi
 fi
+
 backup_file "$PDNS_CONF"
-backup_file "$PDNS_SQLITE_DB"
+backup_file "$PDNS_SQLITE_DB" "$PDNS_RUNTIME_USER:$PDNS_RUNTIME_GROUP"
+
+sudo chown "$PDNS_RUNTIME_USER:$PDNS_RUNTIME_GROUP" "$PDNS_SQLITE_DB_DIR"
 
 # create new pdns.sqlite3 with pdns schema
-sudo sqlite3 "$PDNS_SQLITE_DB" <<PDNS_SQLITE_SCHEMA
+sudo -u $PDNS_RUNTIME_USER sqlite3 "$PDNS_SQLITE_DB" <<PDNS_SQLITE_SCHEMA
 PRAGMA foreign_keys = 1;
 
 CREATE TABLE domains (
@@ -142,7 +155,7 @@ CREATE UNIQUE INDEX namealgoindex ON tsigkeys(name, algorithm);
 PDNS_SQLITE_SCHEMA
 
 # feed RFC1912, section 4.1 local domain information into pdns schema
-sudo sqlite3 "$PDNS_SQLITE_DB" <<PDNS_RFC1912_RECORDS
+sudo -u $PDNS_RUNTIME_USER sqlite3 "$PDNS_SQLITE_DB" <<PDNS_RFC1912_RECORDS
 insert into domains (name,type) values ('0.in-addr.arpa','NATIVE');
 insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,'0.in-addr.arpa', 'SOA', 'localhost root.localhost 1 604800 86400 2419200 604800', 604800, 0, 0 from domains where name='0.in-addr.arpa';
 insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,'0.in-addr.arpa', 'NS', 'localhost', 604800, 0, 0 from domains where name='0.in-addr.arpa';
@@ -161,7 +174,7 @@ insert into records (domain_id, name, type,content,ttl,prio,disabled) select id 
 PDNS_RFC1912_RECORDS
 
 # create new pdns.conf
-sudo cat > "$PDNS_CONF" <<PDNS_CONFIG_CONTENTS
+sudo cat > "$PDNS_CFGDIR/$PDNS_CFGNAME" <<PDNS_CONFIG_CONTENTS
 # Copyright 2017, AppDynamics LLC and its affiliates
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -185,11 +198,14 @@ sudo cat > "$PDNS_CONF" <<PDNS_CONFIG_CONTENTS
 # backends
 launch=gsqlite3
 
-setuid=_sandbox
-setgid=_sandbox
+setuid=$PDNS_RUNTIME_USER
+setgid=$PDNS_RUNTIME_GROUP
 
 # See https://doc.powerdns.com/md/authoritative/backend-generic-sqlite/ for a
 # complete reference on the SQLite backend
-gsqlite3-database="$PDNS_SQLITE_DB"
+gsqlite3-database="$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME"
 gsqlite3-pragma-foreign-keys=1
 PDNS_CONFIG_CONTENTS
+
+# Change ownership of pdns_server to root to prevent it from being replaced without a password
+sudo chown root:admin "@CMAKE_INSTALL_PREFIX@/opt/pdns/sbin/pdns_server"
