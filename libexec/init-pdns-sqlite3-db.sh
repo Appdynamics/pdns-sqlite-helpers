@@ -179,7 +179,7 @@ PDNS_RFC1912_RECORDS
 # create pdns.conf and lock it down to minimize attack surface
 sudo touch "$PDNS_CFGDIR/$PDNS_CFGNAME"
 sudo chmod 600 "$PDNS_CFGDIR/$PDNS_CFGNAME"
-sudo cat > "$PDNS_CFGDIR/$PDNS_CFGNAME" <<PDNS_CONFIG_CONTENTS
+sudo bash -c "cat > '$PDNS_CFGDIR/$PDNS_CFGNAME'" <<PDNS_CONFIG_CONTENTS
 # Copyright 2017, AppDynamics LLC and its affiliates
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
