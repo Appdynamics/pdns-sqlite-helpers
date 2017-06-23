@@ -210,4 +210,4 @@ gsqlite3-pragma-foreign-keys=1
 PDNS_CONFIG_CONTENTS
 
 # Change ownership of pdns_server to root to prevent it from being replaced without a password
-sudo chown root:admin "@CMAKE_INSTALL_PREFIX@/opt/pdns/sbin/pdns_server"
+sudo chown root:admin "@HOMEBREW_PREFIX@/opt/pdns/sbin/pdns_server"
