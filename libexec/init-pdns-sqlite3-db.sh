@@ -23,6 +23,8 @@ declare PDNS_CFGDIR \
     PDNS_SQLITE_DB_DIR \
     PDNS_SQLITE_FILENAME
 
+source @SHAREDIR@/pdns-postgresql-helper-constants.sh
+
 DATE_TIMESTAMP=`date "+%Y%m%d-%H%M%S"`
 
 # Use the brew sqlite3 rather than the "OS X" default
