@@ -207,7 +207,7 @@ setuid=$PDNS_RUNTIME_USER
 setgid=$PDNS_RUNTIME_GROUP
 
 webserver=yes
-webserver-address=localhost
+webserver-address=127.0.0.1
 webserver-port=8001
 webserver-password=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | head -c $PASSWORD_NCHARS)
 webserver-print-arguments=no
