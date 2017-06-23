@@ -1,5 +1,4 @@
-# shell-friendly psql alias
-
+PASSWORD_NCHARS=64
 PDNS_CFGDIR="@HOMEBREW_PREFIX@/etc/pdns"
 PDNS_CFGNAME="pdns.conf"
 # Use defaults from https://doc.powerdns.com/md/authoritative/backend-generic-postgresql/

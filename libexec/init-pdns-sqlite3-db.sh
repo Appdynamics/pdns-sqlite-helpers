@@ -16,7 +16,8 @@
 
 # 'declare' variables we're sourcing from @SHAREDIR@/pdns-sqlite-helper-constants.sh
 # to keep the IDE happy
-declare PDNS_CFGDIR \
+declare PASSWORD_NCHARS \
+    PDNS_CFGDIR \
     PDNS_CFGNAME \
     PDNS_RUNTIME_USER \
     PDNS_RUNTIME_GROUP \
@@ -175,7 +176,9 @@ insert into records (domain_id, name, type,content,ttl,prio,disabled) select id 
 insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,'localhost', 'AAAA', '::1', 604800, 0, 0 from domains where name='localhost';
 PDNS_RFC1912_RECORDS
 
-# create new pdns.conf
+# create pdns.conf and lock it down to minimize attack surface
+sudo touch "$PDNS_CFGDIR/$PDNS_CFGNAME"
+sudo chmod 600 "$PDNS_CFGDIR/$PDNS_CFGNAME"
 sudo cat > "$PDNS_CFGDIR/$PDNS_CFGNAME" <<PDNS_CONFIG_CONTENTS
 # Copyright 2017, AppDynamics LLC and its affiliates
 #
@@ -202,6 +205,14 @@ launch=gsqlite3
 
 setuid=$PDNS_RUNTIME_USER
 setgid=$PDNS_RUNTIME_GROUP
+
+webserver=yes
+webserver-address=localhost
+webserver-port=8001
+webserver-password=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | head -c $PASSWORD_NCHARS)
+webserver-print-arguments=no
+api=yes
+api-key=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | head -c $PASSWORD_NCHARS)
 
 # See https://doc.powerdns.com/md/authoritative/backend-generic-sqlite/ for a
 # complete reference on the SQLite backend
