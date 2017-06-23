@@ -205,7 +205,7 @@ setgid=$PDNS_RUNTIME_GROUP
 
 # See https://doc.powerdns.com/md/authoritative/backend-generic-sqlite/ for a
 # complete reference on the SQLite backend
-gsqlite3-database="$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME"
+gsqlite3-database=$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME
 gsqlite3-pragma-foreign-keys=1
 PDNS_CONFIG_CONTENTS
 
