@@ -55,13 +55,13 @@ if ! [ -d "$PDNS_SQLITE_DB_DIR" ]; then
     fi
 fi
 
-backup_file "$PDNS_CONF"
-backup_file "$PDNS_SQLITE_DB" "$PDNS_RUNTIME_USER:$PDNS_RUNTIME_GROUP"
+backup_file "$PDNS_CFGDIR/$PDNS_CFGNAME"
+backup_file "$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME" "$PDNS_RUNTIME_USER:$PDNS_RUNTIME_GROUP"
 
 sudo chown "$PDNS_RUNTIME_USER:$PDNS_RUNTIME_GROUP" "$PDNS_SQLITE_DB_DIR"
 
 # create new pdns.sqlite3 with pdns schema
-sudo -u $PDNS_RUNTIME_USER sqlite3 "$PDNS_SQLITE_DB" <<PDNS_SQLITE_SCHEMA
+sudo -u $PDNS_RUNTIME_USER sqlite3 "$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME" <<PDNS_SQLITE_SCHEMA
 PRAGMA foreign_keys = 1;
 
 CREATE TABLE domains (
@@ -157,7 +157,7 @@ CREATE UNIQUE INDEX namealgoindex ON tsigkeys(name, algorithm);
 PDNS_SQLITE_SCHEMA
 
 # feed RFC1912, section 4.1 local domain information into pdns schema
-sudo -u $PDNS_RUNTIME_USER sqlite3 "$PDNS_SQLITE_DB" <<PDNS_RFC1912_RECORDS
+sudo -u $PDNS_RUNTIME_USER sqlite3 "$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME" <<PDNS_RFC1912_RECORDS
 insert into domains (name,type) values ('0.in-addr.arpa','NATIVE');
 insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,'0.in-addr.arpa', 'SOA', 'localhost root.localhost 1 604800 86400 2419200 604800', 604800, 0, 0 from domains where name='0.in-addr.arpa';
 insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,'0.in-addr.arpa', 'NS', 'localhost', 604800, 0, 0 from domains where name='0.in-addr.arpa';
