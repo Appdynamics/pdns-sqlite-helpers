@@ -9,7 +9,7 @@ declare PDNS_RUNTIME_USER \
     PDNS_PRIMARY_GID
 
 
-source @SHAREDIR@/pdns-postgresql-helper-constants.sh
+source @SHAREDIR@/pdns-sqlite-helper-constants.sh
 
 if ! dscl . -list "/Users/$PDNS_RUNTIME_USER" >/dev/null 2>&1; then
     >&2 echo "Creating PowerDNS runtime user '$PDNS_RUNTIME_USER'"

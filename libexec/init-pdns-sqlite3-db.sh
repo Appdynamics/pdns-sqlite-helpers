@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# 'declare' variables we're sourcing from @SHAREDIR@/pdns-postgresql-helper-constants.sh
+# 'declare' variables we're sourcing from @SHAREDIR@/pdns-sqlite-helper-constants.sh
 # to keep the IDE happy
 declare PDNS_CFGDIR \
     PDNS_CFGNAME \
@@ -23,7 +23,7 @@ declare PDNS_CFGDIR \
     PDNS_SQLITE_DB_DIR \
     PDNS_SQLITE_FILENAME
 
-source @SHAREDIR@/pdns-postgresql-helper-constants.sh
+source @SHAREDIR@/pdns-sqlite-helper-constants.sh
 
 DATE_TIMESTAMP=`date "+%Y%m%d-%H%M%S"`
 
