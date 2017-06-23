@@ -5,9 +5,9 @@ PDNS_CFGNAME="pdns.conf"
 # Use defaults from https://doc.powerdns.com/md/authoritative/backend-generic-postgresql/
 
 PDNS_RUNTIME_USER=_pdns
-PDNS_USER_RECORD_NAME="_pdns pdns"
+PDNS_USER_ALIAS="pdns"
 PDNS_RUNTIME_GROUP=_pdns
-PDNS_GROUP_RECORD_NAME="_pdns pdns"
+PDNS_GROUP_ALIAS="pdns"
 PDNS_REALNAME="PowerDNS Runtime User"
 # Listing User / Group IDs...
 #   dscl . -list /Users UniqueID | sort -k 2 -n
