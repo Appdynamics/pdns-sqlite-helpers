@@ -207,8 +207,10 @@ PDNS_CONFIG_CONTENTS
 API_KEY_FILE="$PDNS_CFGDIR/$PDNS_CFGNAME.d/api-key.conf"
 sudo touch "$API_KEY_FILE"
 sudo chmod 600 "$API_KEY_FILE"
-sudo echo "api-key=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | head -c $PASSWORD_NCHARS)" \
-    > "$API_KEY_FILE"
+sudo bash -c "cat > \"$API_KEY_FILE\"" <<API_KEY
+api-key=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | head -c $PASSWORD_NCHARS)
+API_KEY
+
 
 # Change ownership of pdns_server to root to prevent it from being replaced without a password
 sudo chown root:admin "@HOMEBREW_PREFIX@/opt/pdns/sbin/pdns_server"
