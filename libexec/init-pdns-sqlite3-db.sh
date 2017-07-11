@@ -176,7 +176,7 @@ insert into records (domain_id, name, type,content,ttl,prio,disabled) select id 
 insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,'localhost', 'AAAA', '::1', 604800, 0, 0 from domains where name='localhost';
 PDNS_RFC1912_RECORDS
 
-cat > '$PDNS_CFGDIR/$PDNS_CFGNAME' <<PDNS_CONFIG_CONTENTS
+cat > "$PDNS_CFGDIR/$PDNS_CFGNAME" <<PDNS_CONFIG_CONTENTS
 # See https://doc.powerdns.com/md/authoritative/settings/ for a complete
 # reference on PowerDNS configuration options
 
