@@ -38,5 +38,9 @@ if(NOT DEFINED SHAREDIR)
     endif()
 endif()
 
+if(NOT DEFINED ETCDIR)
+        set(ETCDIR ${CMAKE_INSTALL_PREFIX}/etc)
+endif()
+
 add_subdirectory(libexec)
 add_subdirectory(share)

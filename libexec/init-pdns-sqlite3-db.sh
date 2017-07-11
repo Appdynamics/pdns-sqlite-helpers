@@ -176,25 +176,7 @@ insert into records (domain_id, name, type,content,ttl,prio,disabled) select id 
 insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,'localhost', 'AAAA', '::1', 604800, 0, 0 from domains where name='localhost';
 PDNS_RFC1912_RECORDS
 
-# create pdns.conf and lock it down to minimize attack surface
-sudo touch "$PDNS_CFGDIR/$PDNS_CFGNAME"
-sudo chmod 600 "$PDNS_CFGDIR/$PDNS_CFGNAME"
-sudo bash -c "cat > '$PDNS_CFGDIR/$PDNS_CFGNAME'" <<PDNS_CONFIG_CONTENTS
-# Copyright 2017, AppDynamics LLC and its affiliates
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
+cat > '$PDNS_CFGDIR/$PDNS_CFGNAME' <<PDNS_CONFIG_CONTENTS
 # See https://doc.powerdns.com/md/authoritative/settings/ for a complete
 # reference on PowerDNS configuration options
 
@@ -212,13 +194,21 @@ webserver-port=8001
 webserver-password=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | head -c $PASSWORD_NCHARS)
 webserver-print-arguments=no
 api=yes
-api-key=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | head -c $PASSWORD_NCHARS)
 
 # See https://doc.powerdns.com/md/authoritative/backend-generic-sqlite/ for a
 # complete reference on the SQLite backend
 gsqlite3-database=$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME
 gsqlite3-pragma-foreign-keys=1
+
+include-dir=$PDNS_CFGDIR/$PDNS_CFGNAME.d
 PDNS_CONFIG_CONTENTS
+
+# prevent API key from being read by anybody but root to minimize attack surface
+API_KEY_FILE="$PDNS_CFGDIR/$PDNS_CFGNAME.d/api-key.conf"
+sudo touch "$API_KEY_FILE"
+sudo chmod 600 "$API_KEY_FILE"
+sudo echo "api-key=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | head -c $PASSWORD_NCHARS)" \
+    > "$API_KEY_FILE"
 
 # Change ownership of pdns_server to root to prevent it from being replaced without a password
 sudo chown root:admin "@HOMEBREW_PREFIX@/opt/pdns/sbin/pdns_server"
