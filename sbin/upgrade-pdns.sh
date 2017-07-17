@@ -13,7 +13,7 @@ eval `ls -l "$HOMEBREW_PREFIX/bin/brew" | awk '{printf("BREW_OWNER=%s;BREW_GROUP
 
 PDNS_SERVER="$HOMEBREW_PREFIX/opt/pdns/sbin/pdns_server"
 
-sudo chown $BREW_OWNER:$BREW_GROUP
+sudo chown $BREW_OWNER:$BREW_GROUP $PDNS_SERVER
 
 sudo -u $BREW_OWNER brew update
 sudo -u $BREW_OWNER brew upgrade "$PDNS_FORMULA"
