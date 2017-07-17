@@ -51,5 +51,4 @@ if(NOT DEFINED ETCDIR)
 endif()
 
 add_subdirectory(libexec)
-add_subdirectory(sbin)
 add_subdirectory(share)
