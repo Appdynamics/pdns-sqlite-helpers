@@ -56,6 +56,7 @@ if ! [ -d "$PDNS_SQLITE_DB_DIR" ]; then
     fi
 fi
 
+
 backup_file "$PDNS_CFGDIR/$PDNS_CFGNAME"
 backup_file "$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME" "$PDNS_RUNTIME_USER:$PDNS_RUNTIME_GROUP"
 
@@ -176,7 +177,9 @@ insert into records (domain_id, name, type,content,ttl,prio,disabled) select id 
 insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,'localhost', 'AAAA', '::1', 604800, 0, 0 from domains where name='localhost';
 PDNS_RFC1912_RECORDS
 
-cat > "$PDNS_CFGDIR/$PDNS_CFGNAME" <<PDNS_CONFIG_CONTENTS
+sudo touch "$PDNS_CFGDIR/$PDNS_CFGNAME"
+sudo chmod 644 "$PDNS_CFGDIR/$PDNS_CFGNAME"
+sudo bash -c "cat > \"$PDNS_CFGDIR/$PDNS_CFGNAME\"" <<PDNS_CONFIG_CONTENTS
 # See https://doc.powerdns.com/md/authoritative/settings/ for a complete
 # reference on PowerDNS configuration options
 
@@ -187,6 +190,8 @@ launch=gsqlite3
 
 setuid=$PDNS_RUNTIME_USER
 setgid=$PDNS_RUNTIME_GROUP
+
+default-soa-mail=`whoami`@`hostname -s`.corp.appdynamics.com
 
 webserver=yes
 webserver-address=127.0.0.1
