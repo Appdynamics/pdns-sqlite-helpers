@@ -26,17 +26,38 @@ declare PASSWORD_NCHARS \
 
 source @SHAREDIR@/pdns-sqlite-helper-constants.sh
 
+USAGE="\
+init-pdns-sqlite3-db-and-config.sh [options]
+
+Creates a new PowerDNS configuration and SQLite database.
+
+Options:
+    -C <dir>        Path to alternate location for pdns.conf
+                    Default: $PDNS_CFGDIR
+    -D <path>       Path to alternate location for the PowerDNS sqlite backend
+                    database file. Default: $PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME
+    -p <1-65535>    Alternate port for DNS queries.  Default: 53
+    -H <1-65535>    Alternate HTTP server port number: Default 8001
+    -n              No sudo. Do not use 'sudo' to change the ownership of
+                    config files to root and sqlite file to $PDNS_RUNTIME_USER.
+    -h              Print this help message and exit.
+"
+
 DATE_TIMESTAMP=`date "+%Y%m%d-%H%M%S"`
 
 # Use the brew sqlite3 rather than the "OS X" default
 PATH="/usr/local/opt/sqlite/bin:$PATH"
 
-# renames $1 to $1.bak-$DATE_TIMESTAMP, as root and keeps it in the same directory
+# renames $1 to $1.bak-$DATE_TIMESTAMP, and keeps it in the same directory
 # $2: optional ownership spec i.e. 'user' or 'user:group'
 backup_file(){
+    local SUDO=
+    if [ -n "$2" ]; then
+        SUDO=sudo
+    fi
     if [ -f "$1" ]; then
         DST="$1.bak-$DATE_TIMESTAMP"
-        if ! sudo mv "$1" "$DST"; then
+        if ! $SUDO mv "$1" "$DST"; then
             >&2 echo "Failed to rename '$1' to"
             >&2 echo "$DST"
             >&2 echo "Exiting."
@@ -48,22 +69,87 @@ backup_file(){
     fi
 }
 
+DNS_PORT=53
+HTTP_PORT=8001
+SUDO_PDNS="sudo -u $PDNS_RUNTIME_USER"
+SUDO_ROOT="sudo"
+CFG_OWNERSHIP_SPEC=root:admin
+SQLITE_FILE_OWNERSHIP_SPEC=$PDNS_RUNTIME_USER:$PDNS_RUNTIME_GROUP
+
+input_errors=0
+while getopts ":C:D:p:H:nh" flag; do
+    case $flag in
+        C)
+            PDNS_CFGDIR="$OPTARG"
+        ;;
+        D)
+            PDNS_SQLITE_DB_DIR=$(dirname "$OPTARG")
+            PDNS_SQLITE_FILENAME=$(basename "$OPTARG")
+        ;;
+        p)
+            if test "$OPTARG" -ge 1 2>/dev/null && test "$OPTARG" -le 65535 2>/dev/null; then
+                DNS_PORT=$OPTARG
+            else
+                >&2 echo "DNS port argument must be an integer between 1 and 65535"
+                ((input_errors++))
+            fi
+        ;;
+        H)
+            if test "$OPTARG" -ge 1 2>/dev/null && test "$OPTARG" -le 65535 2>/dev/null; then
+                HTTP_PORT=$OPTARG
+            else
+                >&2 echo "HTTP port argument must be an integer between 1 and 65535"
+                ((input_errors++))
+            fi
+        ;;
+        n)
+            SUDO_PDNS=
+            SUDO_ROOT=
+            CFG_OWNERSHIP_SPEC=
+            SQLITE_FILE_OWNERSHIP_SPEC=
+        ;;
+        *)
+            >&2 echo "-$OPTARG flag not supported."
+            ((input_errors++))
+        ;;
+    esac
+done
+
+if [ $input_errors -gt 0 ]; then
+    >&2 echo "$USAGE"
+    exit 1
+fi
+
+
+if ! [ -d "$PDNS_CFGDIR" ]; then
+    if ! mkdir -p "$PDNS_CFGDIR"; then
+        >&2 echo "Unable to create '$PDNS_CFGDIR'"
+        >&2 echo "Exiting."
+        exit 2
+    fi
+fi
+
 if ! [ -d "$PDNS_SQLITE_DB_DIR" ]; then
     if ! mkdir -p "$PDNS_SQLITE_DB_DIR"; then
         >&2 echo "Unable to create '$PDNS_SQLITE_DB_DIR'"
         >&2 echo "Exiting."
-        exit 1
+        exit 3
     fi
 fi
 
+backup_file "$PDNS_CFGDIR/$PDNS_CFGNAME" $CFG_OWNERSHIP_SPEC
+backup_file "$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME" $SQLITE_FILE_OWNERSHIP_SPEC
 
-backup_file "$PDNS_CFGDIR/$PDNS_CFGNAME"
-backup_file "$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME" "$PDNS_RUNTIME_USER:$PDNS_RUNTIME_GROUP"
+if [ -n "$SUDO_PDNS" ]; then
+    sudo chown "$PDNS_RUNTIME_USER:$PDNS_RUNTIME_GROUP" "$PDNS_SQLITE_DB_DIR"
+fi
 
-sudo chown "$PDNS_RUNTIME_USER:$PDNS_RUNTIME_GROUP" "$PDNS_SQLITE_DB_DIR"
+if [ -n "$SUDO_ROOT" ]; then
+    sudo chown root:admin "$PDNS_CFGDIR"
+fi
 
 # create new pdns.sqlite3 with pdns schema
-sudo -u $PDNS_RUNTIME_USER bash -c "sqlite3 '$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME'" <<PDNS_SQLITE_SCHEMA
+$SUDO_PDNS bash -c "sqlite3 '$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME'" <<PDNS_SQLITE_SCHEMA
 PRAGMA foreign_keys = 1;
 
 CREATE TABLE domains (
@@ -159,7 +245,7 @@ CREATE UNIQUE INDEX namealgoindex ON tsigkeys(name, algorithm);
 PDNS_SQLITE_SCHEMA
 
 # feed RFC1912, section 4.1 local domain information into pdns schema
-sudo -u $PDNS_RUNTIME_USER bash -c "sqlite3 '$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME'" <<PDNS_RFC1912_RECORDS
+$SUDO_PDNS bash -c "sqlite3 '$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME'" <<PDNS_RFC1912_RECORDS
 insert into domains (name,type) values ('0.in-addr.arpa','NATIVE');
 insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,'0.in-addr.arpa', 'SOA', 'localhost root.localhost 1 604800 86400 2419200 604800', 604800, 0, 0 from domains where name='0.in-addr.arpa';
 insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,'0.in-addr.arpa', 'NS', 'localhost', 604800, 0, 0 from domains where name='0.in-addr.arpa';
@@ -177,9 +263,9 @@ insert into records (domain_id, name, type,content,ttl,prio,disabled) select id 
 insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,'localhost', 'AAAA', '::1', 604800, 0, 0 from domains where name='localhost';
 PDNS_RFC1912_RECORDS
 
-sudo touch "$PDNS_CFGDIR/$PDNS_CFGNAME"
-sudo chmod 644 "$PDNS_CFGDIR/$PDNS_CFGNAME"
-sudo bash -c "cat > \"$PDNS_CFGDIR/$PDNS_CFGNAME\"" <<PDNS_CONFIG_CONTENTS
+$SUDO_ROOT touch "$PDNS_CFGDIR/$PDNS_CFGNAME"
+$SUDO_ROOT chmod 644 "$PDNS_CFGDIR/$PDNS_CFGNAME"
+$SUDO_ROOT bash -c "cat > \"$PDNS_CFGDIR/$PDNS_CFGNAME\"" <<PDNS_CONFIG_CONTENTS
 # See https://doc.powerdns.com/md/authoritative/settings/ for a complete
 # reference on PowerDNS configuration options
 
@@ -210,12 +296,8 @@ PDNS_CONFIG_CONTENTS
 
 # prevent API key from being read by anybody but root to minimize attack surface
 API_KEY_FILE="$PDNS_CFGDIR/$PDNS_CFGNAME.d/api-key.conf"
-sudo touch "$API_KEY_FILE"
-sudo chmod 600 "$API_KEY_FILE"
-sudo bash -c "cat > \"$API_KEY_FILE\"" <<API_KEY
+$SUDO_ROOT touch "$API_KEY_FILE"
+$SUDO_ROOT chmod 600 "$API_KEY_FILE"
+$SUDO_ROOT bash -c "cat > \"$API_KEY_FILE\"" <<API_KEY
 api-key=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | head -c $PASSWORD_NCHARS)
 API_KEY
-
-
-# Change ownership of pdns_server to root to prevent it from being replaced without a password
-sudo chown root:admin "@HOMEBREW_PREFIX@/opt/pdns/sbin/pdns_server"
