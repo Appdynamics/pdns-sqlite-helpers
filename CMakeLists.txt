@@ -22,13 +22,13 @@ if(NOT DEFINED VARDIR)
     endif()
 endif()
 
-if(NOT DEFINED SBINDIR)
+#[[if(NOT DEFINED SBINDIR)
     if(${CMAKE_INSTALL_PREFIX} EQUAL "/")
         set(SBINDIR /usr/sbin)
     else()
         set(SBINDIR ${CMAKE_INSTALL_PREFIX}/sbin)
     endif()
-endif()
+endif()]]
 
 if(NOT DEFINED LIBEXEC)
     if(${CMAKE_INSTALL_PREFIX} EQUAL "/")
