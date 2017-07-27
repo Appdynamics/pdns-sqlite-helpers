@@ -38,15 +38,28 @@ Options:
                     database file. Default: $PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME
     -p <1-65535>    Alternate port for DNS queries.  Default: 53
     -H <1-65535>    Alternate HTTP server port number: Default 8001
+    -m <email addr> Default hostmaster email used by PowerDNS.
     -n              No sudo. Do not use 'sudo' to change the ownership of
                     config files to root and sqlite file to $PDNS_RUNTIME_USER.
     -h              Print this help message and exit.
 "
 
-DATE_TIMESTAMP=`date "+%Y%m%d-%H%M%S"`
+# TODO: RFC822, sections 3.3 and 6 actually allow for many more special
+# characters in the "local-part" token, but supporting all of them takes us to
+# the land of diminishing returns.  If we need to support any RFC822-compliant
+# email address, we need to reimplement this tool in a different language that
+# has available escape-for-JSON library routines
+#
+# $1: email address to check for safety.
+is_safe_email(){
+    [ ${#@} -eq 1 ] && [[ $1 =~ ^[-A-Za-z0-9._+]+@([-A-Za-z0-9]{2,}\.)+$ ]]
+}
 
-# Use the brew sqlite3 rather than the "OS X" default
-PATH="/usr/local/opt/sqlite/bin:$PATH"
+DATE_TIMESTAMP=`date "+%Y%m%d-%H%M%S"`
+DEFAULT_SOA_MAIL=`whoami`@`hostname -s`.corp.appdynamics.com
+
+# Alias the brew sqlite3 rather using than the "OS X" default
+SQLITE="@SQLITE_BINARY@"
 
 # renames $1 to $1.bak-$DATE_TIMESTAMP, and keeps it in the same directory
 # $2: optional ownership spec i.e. 'user' or 'user:group'
@@ -102,6 +115,14 @@ while getopts ":C:D:p:H:nh" flag; do
                 ((input_errors++))
             fi
         ;;
+        m)
+            if is_safe_email "$OPTARG"; then
+                DEFAULT_SOA_MAIL=$OPTARG
+            else
+                >&2 echo "Default hostmaster email is not a safely formatted email address."
+                ((input_errors++))
+            fi
+        ;;
         n)
             SUDO_PDNS=
             SUDO_ROOT=
@@ -149,7 +170,7 @@ if [ -n "$SUDO_ROOT" ]; then
 fi
 
 # create new pdns.sqlite3 with pdns schema
-$SUDO_PDNS bash -c "sqlite3 '$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME'" <<PDNS_SQLITE_SCHEMA
+$SUDO_PDNS bash -c "'$SQLITE' '$PDNS_SQLITE_DB_DIR/$PDNS_SQLITE_FILENAME'" <<PDNS_SQLITE_SCHEMA
 PRAGMA foreign_keys = 1;
 
 CREATE TABLE domains (
@@ -277,7 +298,7 @@ launch=gsqlite3
 setuid=$PDNS_RUNTIME_USER
 setgid=$PDNS_RUNTIME_GROUP
 
-default-soa-mail=`whoami`@`hostname -s`.corp.appdynamics.com
+default-soa-mail=$DEFAULT_SOA_MAIL
 
 webserver=yes
 webserver-address=127.0.0.1

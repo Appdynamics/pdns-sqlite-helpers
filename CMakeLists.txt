@@ -50,5 +50,9 @@ if(NOT DEFINED ETCDIR)
         set(ETCDIR ${CMAKE_INSTALL_PREFIX}/etc)
 endif()
 
+if(NOT DEFINED SQLITE_BINARY)
+    set(SQLITE_BINARY sqlite3)
+endif()
+
 add_subdirectory(libexec)
 add_subdirectory(share)
