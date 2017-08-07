@@ -316,7 +316,9 @@ include-dir=$PDNS_CFGDIR/$PDNS_CFGNAME.d
 PDNS_CONFIG_CONTENTS
 
 # prevent API key from being read by anybody but root to minimize attack surface
-API_KEY_FILE="$PDNS_CFGDIR/$PDNS_CFGNAME.d/api-key.conf"
+PDNS_CFG_INCLUDE_DIR="$PDNS_CFGDIR/$PDNS_CFGNAME.d/"
+$SUDO_PDNS mkdir "$PDNS_CFG_INCLUDE_DIR"
+API_KEY_FILE="$PDNS_CFG_INCLUDE_DIR/api-key.conf"
 $SUDO_ROOT touch "$API_KEY_FILE"
 $SUDO_ROOT chmod 600 "$API_KEY_FILE"
 $SUDO_ROOT bash -c "cat > \"$API_KEY_FILE\"" <<API_KEY
