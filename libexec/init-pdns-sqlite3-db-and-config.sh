@@ -88,6 +88,8 @@ SUDO_PDNS="sudo -u $PDNS_RUNTIME_USER"
 SUDO_ROOT="sudo"
 CFG_OWNERSHIP_SPEC=root:admin
 SQLITE_FILE_OWNERSHIP_SPEC=$PDNS_RUNTIME_USER:$PDNS_RUNTIME_GROUP
+SET_UID_GID="setuid=$PDNS_RUNTIME_USER
+setgid=$PDNS_RUNTIME_GROUP"
 
 input_errors=0
 while getopts ":C:D:p:H:nh" flag; do
@@ -128,6 +130,7 @@ while getopts ":C:D:p:H:nh" flag; do
             SUDO_ROOT=
             CFG_OWNERSHIP_SPEC=
             SQLITE_FILE_OWNERSHIP_SPEC=
+            SET_UID_GID=
         ;;
         *)
             >&2 echo "-$OPTARG flag not supported."
@@ -297,8 +300,7 @@ launch=gsqlite3
 
 local-port=$DNS_PORT
 
-setuid=$PDNS_RUNTIME_USER
-setgid=$PDNS_RUNTIME_GROUP
+$SET_UID_GID
 
 default-soa-mail=$DEFAULT_SOA_MAIL
 
