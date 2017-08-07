@@ -295,6 +295,8 @@ $SUDO_ROOT bash -c "cat > \"$PDNS_CFGDIR/$PDNS_CFGNAME\"" <<PDNS_CONFIG_CONTENTS
 # backends
 launch=gsqlite3
 
+local-port=$DNS_PORT
+
 setuid=$PDNS_RUNTIME_USER
 setgid=$PDNS_RUNTIME_GROUP
 
@@ -302,7 +304,7 @@ default-soa-mail=$DEFAULT_SOA_MAIL
 
 webserver=yes
 webserver-address=127.0.0.1
-webserver-port=8001
+webserver-port=$HTTP_PORT
 webserver-password=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | head -c $PASSWORD_NCHARS)
 webserver-print-arguments=no
 api=yes
