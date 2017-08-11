@@ -39,6 +39,10 @@ Options:
     -p <1-65535>    Alternate port for DNS queries.  Default: 53
     -H <1-65535>    Alternate HTTP server port number: Default 8001
     -m <email addr> Default hostmaster email used by PowerDNS.
+    -P <0-65535>    Time, in seconds PowerDNS should cache answers to DNS
+                    queries.  (Default: 20)
+    -q <0-65535>    Time, in seconds PowerDNS should cache results from backend
+                    queries.  (Default: 20)
     -n              No sudo. Do not use 'sudo' to change the ownership of
                     config files to root and sqlite file to $PDNS_RUNTIME_USER.
     -s <dir>        The directory for pdns_server's controlsocket.
@@ -90,11 +94,13 @@ SUDO_PDNS="sudo -u $PDNS_RUNTIME_USER"
 SUDO_ROOT="sudo"
 CFG_OWNERSHIP_SPEC=root:admin
 SQLITE_FILE_OWNERSHIP_SPEC=$PDNS_RUNTIME_USER:$PDNS_RUNTIME_GROUP
+PACKET_CACHE_TTL=
+QUERY_CACHE_TTL=
 SET_UID_GID="setuid=$PDNS_RUNTIME_USER
 setgid=$PDNS_RUNTIME_GROUP"
 
 input_errors=0
-while getopts ":C:D:p:H:ns:h" flag; do
+while getopts ":C:D:p:H:m:P:q:ns:h" flag; do
     case $flag in
         C)
             PDNS_CFGDIR="$OPTARG"
@@ -124,6 +130,22 @@ while getopts ":C:D:p:H:ns:h" flag; do
                 DEFAULT_SOA_MAIL=$OPTARG
             else
                 >&2 echo "Default hostmaster email is not a safely formatted email address."
+                ((input_errors++))
+            fi
+        ;;
+        P)
+            if test "$OPTARG" -ge 0 2>/dev/null && test "$OPTARG" -le 65535 2>/dev/null; then
+                PACKET_CACHE_TTL="cache-ttl=$OPTARG"
+            else
+                >&2 echo "Packet cache TTL argument must be an integer between 0 and 65535"
+                ((input_errors++))
+            fi
+        ;;
+        q)
+            if test "$OPTARG" -ge 0 2>/dev/null && test "$OPTARG" -le 65535 2>/dev/null; then
+                QUERY_CACHE_TTL="query-cache-ttl=$OPTARG"
+            else
+                >&2 echo "Query cache TTL argument must be an integer between 0 and 65535"
                 ((input_errors++))
             fi
         ;;
@@ -311,7 +333,8 @@ launch=gsqlite3
 local-port=$DNS_PORT
 
 $SOCKET_DIR
-
+$PACKET_CACHE_TTL
+$QUERY_CACHE_TTL
 $SET_UID_GID
 
 default-soa-mail=$DEFAULT_SOA_MAIL
