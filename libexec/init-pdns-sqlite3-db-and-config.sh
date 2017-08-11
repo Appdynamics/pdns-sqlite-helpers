@@ -41,6 +41,8 @@ Options:
     -m <email addr> Default hostmaster email used by PowerDNS.
     -n              No sudo. Do not use 'sudo' to change the ownership of
                     config files to root and sqlite file to $PDNS_RUNTIME_USER.
+    -s <dir>        The directory for pdns_server's controlsocket.
+                    (Default: @VARDIR@)
     -h              Print this help message and exit.
 "
 
@@ -92,7 +94,7 @@ SET_UID_GID="setuid=$PDNS_RUNTIME_USER
 setgid=$PDNS_RUNTIME_GROUP"
 
 input_errors=0
-while getopts ":C:D:p:H:nh" flag; do
+while getopts ":C:D:p:H:ns:h" flag; do
     case $flag in
         C)
             PDNS_CFGDIR="$OPTARG"
@@ -131,6 +133,14 @@ while getopts ":C:D:p:H:nh" flag; do
             CFG_OWNERSHIP_SPEC=
             SQLITE_FILE_OWNERSHIP_SPEC=
             SET_UID_GID=
+        ;;
+        s)
+            if [ -d "$OPTARG" ]; then
+                SOCKET_DIR="socket-dir=$OPTARG"
+            else
+                >&2 echo "Socket directory '$OPTARG' is not a valid directory."
+                ((input_errors++))
+            fi
         ;;
         *)
             >&2 echo "-$OPTARG flag not supported."
@@ -299,6 +309,8 @@ $SUDO_ROOT bash -c "cat > \"$PDNS_CFGDIR/$PDNS_CFGNAME\"" <<PDNS_CONFIG_CONTENTS
 launch=gsqlite3
 
 local-port=$DNS_PORT
+
+$SOCKET_DIR
 
 $SET_UID_GID
 
