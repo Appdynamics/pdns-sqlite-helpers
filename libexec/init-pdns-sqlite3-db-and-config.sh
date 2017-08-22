@@ -62,7 +62,7 @@ is_safe_email(){
 }
 
 DATE_TIMESTAMP=`date "+%Y%m%d-%H%M%S"`
-DEFAULT_SOA_MAIL=`whoami`@`hostname -s`.corp.appdynamics.com
+DEFAULT_SOA_MAIL=`whoami`@`hostname -f`
 
 # Alias the brew sqlite3 rather using than the "OS X" default
 SQLITE="@SQLITE_BINARY@"
